@@ -155,20 +155,21 @@ class EnterMysqlSettingsPage extends ConsumerWidget {
                       db: _dbNameController.text.trim(),
                     );
 
-                    if (await DatabaseAPI(settings: _settings).checkForDatabaseConnection()) {
-                      ref.read(mysqlConnectionProvider.state).state = _settings;
-
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) {
-                            return const LoginScreen();
-                          },
-                        ),
-                      );
-                    } else {
+                    if (!await DatabaseAPI(settings: _settings).checkForDatabaseConnection()) {
                       EasyLoading.showError('Failed to connect to database');
+                      return;
                     }
+                    
+                    ref.read(mysqlConnectionProvider.state).state = _settings;
+
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return const LoginScreen();
+                        },
+                      ),
+                    );
                   },
                   child: const Text('Connect'),
                 ),

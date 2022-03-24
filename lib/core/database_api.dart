@@ -1,15 +1,16 @@
 import 'package:chocs_to_go_shop/core/utilites.dart';
+import 'package:chocs_to_go_shop/data_classes/bag_product.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:mysql1/mysql1.dart';
 
 class DatabaseAPI {
+  DatabaseAPI({required this.settings});
+
   final String tableName = 'chocs_to_go_inventory';
 
   final ConnectionSettings settings;
 
-  DatabaseAPI({required this.settings});
-
-  Future<Iterable> queryTable() async {
+  Future<Iterable> testQueryTable() async {
     EasyLoading.show();
     try {
       MySqlConnection conn = await MySqlConnection.connect(settings);
@@ -41,7 +42,6 @@ class DatabaseAPI {
     }
   }
 
-
   Future<bool> checkForDatabaseConnection() async {
     EasyLoading.show(status: 'Loading');
 
@@ -54,6 +54,28 @@ class DatabaseAPI {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future orderProducts(List<BagProduct> _orders) async {
+    EasyLoading.show(status: 'Loading');
+
+    try {
+      MySqlConnection conn = await MySqlConnection.connect(settings);
+      //  await Future.delayed(const Duration(seconds: 1));
+      for (var element in _orders) {
+        int _newQuantity = element.chocolate.quantity - element.bagQuantity;
+
+        await conn.query('UPDATE `$tableName` SET `quantity`=?, `last_date_release`=? WHERE `product_id`=?', [
+          _newQuantity,
+          DateTime.now().toUtc(),
+          element.chocolate.productID,
+        ]);
+      }
+      await conn.close();
+      EasyLoading.dismiss();
+    } catch (e) {
+      return Future.error(e.toString());
     }
   }
 }

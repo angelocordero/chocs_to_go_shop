@@ -1,5 +1,6 @@
 import 'package:chocs_to_go_shop/core/constants.dart';
 import 'package:chocs_to_go_shop/core/providers_definition.dart';
+import 'package:chocs_to_go_shop/core/database_api.dart';
 import 'package:chocs_to_go_shop/core/utilites.dart';
 import 'package:chocs_to_go_shop/data_classes/bag_product.dart';
 import 'package:chocs_to_go_shop/data_classes/chocolates_data.dart';
@@ -13,10 +14,12 @@ import 'package:google_fonts/google_fonts.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
-  static String _flavor = 'Dark';
+  static String _flavor = 'All';
   static final ScrollController _gridViewController = ScrollController();
   static final TextEditingController _searchController = TextEditingController();
   static final ScrollController _bagListController = ScrollController();
+
+  static final GlobalKey<FormFieldState> _key = GlobalKey();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -115,7 +118,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             const Divider(),
             _bagList(context, ref),
-            _purchaseDetails(ref),
+            _purchaseDetails(context, ref),
           ],
         ),
       ),
@@ -143,7 +146,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Expanded _purchaseDetails(WidgetRef ref) {
+  Expanded _purchaseDetails(BuildContext context, WidgetRef ref) {
     double _total = ref.watch(totalPriceProvider);
 
     return Expanded(
@@ -227,9 +230,11 @@ class HomeScreen extends ConsumerWidget {
                   shape: customButtonShape,
                   primary: customAccentColor,
                 ),
-                onPressed: () async {
-                  ref.read(bagProvider.notifier).clearBag();
-                },
+                onPressed: ref.watch(bagProvider).isEmpty
+                    ? null
+                    : () async {
+                        await ref.read(bagProvider.notifier).clearBag();
+                      },
                 child: Text(
                   'Clear bag',
                   style: TextStyle(color: customButtonTextColor),
@@ -240,7 +245,57 @@ class HomeScreen extends ConsumerWidget {
                   shape: customButtonShape,
                   primary: customAccentColor,
                 ),
-                onPressed: () {},
+                onPressed: ref.watch(bagProvider).isEmpty
+                    ? null
+                    : () async {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              backgroundColor: customAccentColor,
+                              title: Text(
+                                'Confirm Order?',
+                                style: TextStyle(color: customButtonTextColor),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(
+                                    'No',
+                                    style: TextStyle(color: customButtonTextColor),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    try {
+                                      await DatabaseAPI(settings: ref.read(mysqlConnectionProvider)).orderProducts(ref.read(bagProvider));
+                                      await ref.read(chocolatesProvider.notifier).reset(ref);
+
+                                      await ref.read(bagProvider.notifier).clearBag();
+
+                                      EasyLoading.showSuccess(
+                                        'Order successful!\nThank you.',
+                                        dismissOnTap: false,
+                                        duration: const Duration(seconds: 3),
+                                      );
+                                    } catch (e) {
+                                      EasyLoading.showError(e.toString());
+                                    }
+
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(
+                                    'Yes',
+                                    style: TextStyle(color: customButtonTextColor),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
                 child: Text(
                   'Order',
                   style: TextStyle(color: customButtonTextColor),
@@ -439,8 +494,12 @@ class HomeScreen extends ConsumerWidget {
             shape: customButtonShape,
             primary: customAccentColor,
           ),
-          onPressed: () {
-            ref.read(chocolatesProvider.notifier).searchForProductName(_searchController.text);
+          onPressed: () async {
+            await ref.read(chocolatesProvider.notifier).searchForProductName(_searchController.text);
+
+            _flavor = 'All';
+
+            _key.currentState!.reset();
           },
           child: Text(
             'Search using product name',
@@ -452,6 +511,7 @@ class HomeScreen extends ConsumerWidget {
           child: ButtonTheme(
             alignedDropdown: true,
             child: DropdownButtonFormField<String>(
+              key: _key,
               dropdownColor: customBGColor,
               decoration: const InputDecoration(
                 enabledBorder: OutlineInputBorder(
@@ -474,7 +534,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               isDense: true,
-              value: _flavorsList.first,
+              value: 'All',
               style: const TextStyle(
                 fontSize: 12,
               ),

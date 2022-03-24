@@ -1,5 +1,5 @@
 import 'package:chocs_to_go_shop/core/providers_definition.dart';
-import 'package:chocs_to_go_shop/core/test_database_api.dart';
+import 'package:chocs_to_go_shop/core/database_api.dart';
 import 'package:chocs_to_go_shop/data_classes/chocolates_data.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,7 +9,7 @@ class ChocolatesProvider extends StateNotifier<List<Chocolates>> {
   List<Chocolates> _fullList = [];
 
   Future init(WidgetRef ref) async {
-    await TestDatabaseAPI(settings: ref.read(mysqlConnectionProvider)).testQueryTable().then(
+    await DatabaseAPI(settings: ref.read(mysqlConnectionProvider)).testQueryTable().then(
       (value) {
         List<Chocolates> _temp = [];
 
@@ -37,8 +37,8 @@ class ChocolatesProvider extends StateNotifier<List<Chocolates>> {
   }
 
   Future reset(WidgetRef ref) async {
-    await init(ref);
     _fullList = [];
+    await init(ref);
   }
 
   searchForProductName(String query) {

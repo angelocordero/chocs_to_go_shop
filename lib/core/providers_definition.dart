@@ -10,13 +10,7 @@ final chocolatesProvider = StateNotifierProvider<ChocolatesProvider, List<Chocol
 });
 
 final mysqlConnectionProvider = StateProvider<ConnectionSettings>((ref) {
-  return ConnectionSettings(
-    host: 'localhost',
-    port: 3306,
-    user: 'angelo',
-    password: 'krystelle12',
-    db: 'cpe_221',
-  );
+  return ConnectionSettings();
 });
 
 final bagProvider = StateNotifierProvider<BagProvider, List<BagProduct>>((ref) {
@@ -47,3 +41,4 @@ final totalProductQuantityProvider = StateProvider<int>((ref) {
 
   return _quantity;
 });
+
